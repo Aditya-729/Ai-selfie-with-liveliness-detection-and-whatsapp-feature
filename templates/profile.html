@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Profile</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .profile-card {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .avatar {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-bottom: 1rem;
+            border: 4px solid #1a73e8;
+        }
+
+        h1 {
+            color: #202124;
+            margin: 0;
+            font-size: 1.5rem;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin: 0.5rem 0;
+        }
+
+        .verified {
+            background-color: #e6f4ea;
+            color: #137333;
+        }
+
+        .warning {
+            background-color: #fef7e0;
+            color: #ea8600;
+        }
+
+        .error {
+            background-color: #fce8e6;
+            color: #c5221f;
+        }
+
+        .details {
+            text-align: left;
+            margin-top: 1.5rem;
+            border-top: 1px solid #dadce0;
+            padding-top: 1rem;
+        }
+
+        .detail-item {
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .label {
+            color: #5f6368;
+        }
+
+        .value {
+            font-weight: 600;
+            color: #202124;
+        }
+
+        .fun-fact {
+            margin-top: 1.5rem;
+            background-color: #fef7e0;
+            padding: 1rem;
+            border-radius: 8px;
+            color: #ea8600;
+            font-weight: 600;
+        }
+
+        .actions {
+            margin-top: 2rem;
+            border-top: 1px solid #dadce0;
+            padding-top: 1rem;
+        }
+
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 0.75rem;
+            border: none;
+            border-radius: 4px;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-bottom: 0.5rem;
+            text-decoration: none;
+            box-sizing: border-box;
+        }
+
+        .btn-whatsapp {
+            background-color: #25D366;
+            color: white;
+        }
+
+        .btn-whatsapp:hover {
+            background-color: #128C7E;
+        }
+
+        .message-box {
+            display: none;
+            margin-top: 1rem;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #dadce0;
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="profile-card">
+        <img src="https://via.placeholder.com/150" alt="Profile" class="avatar">
+        <h1>{{ name }}</h1>
+
+        {% if status == 'success' %}
+        <span class="status verified">Verified User</span>
+        {% elif status == 'warning' %}
+        <span class="status warning">Verification Warning</span>
+        {% else %}
+        <span class="status error">Verification Failed</span>
+        {% endif %}
+
+        <div class="details">
+            <div class="detail-item">
+                <span class="label">Result</span>
+                <span class="value">{{ result }}</span>
+            </div>
+            <div class="detail-item">
+                <span class="label">Age</span>
+                <span class="value">{{ age }}</span>
+            </div>
+            <div class="detail-item">
+                <span class="label">Gender</span>
+                <span class="value">{{ gender }}</span>
+            </div>
+            <div class="detail-item">
+                <span class="label">Emotion</span>
+                <span class="value">{{ emotion }}</span>
+            </div>
+            <div class="detail-item">
+                <span class="label">ID Name Match</span>
+                <span class="value">{% if ocr_match %}✅ Yes{% else %}⚠️ No{% endif %}</span>
+            </div>
+        </div>
+
+        {% if celebrity %}
+        <div class="fun-fact">
+            🎭 Celebrity Lookalike: <br>
+            <span style="font-size: 1.2rem; color: #b06000;">{{ celebrity }}</span>
+        </div>
+        {% endif %}
+
+        <div class="actions">
+            <h3>WhatsApp Actions</h3>
+            <button onclick="sendReport()" class="btn btn-whatsapp">📄 Send Full Report</button>
+            <button onclick="toggleMessage()" class="btn btn-whatsapp">💬 Send Custom Message</button>
+
+            <div id="messageBox" class="message-box">
+                <textarea id="customMessage" rows="3" placeholder="Type your message..."></textarea>
+                <button onclick="sendMessage()" class="btn btn-whatsapp">Send Now</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const whatsappNumber = "{{ whatsapp }}";
+        const reportText = `*Verification Report for {{ name }}*
+------------------
+Status: {{ result }}
+Age: {{ age }}
+Gender: {{ gender }}
+Emotion: {{ emotion }}
+Celebrity Lookalike: {{ celebrity }}
+ID Match: {% if ocr_match %}Yes{% else %}No{% endif %}`.trim();
+
+        function sendReport() {
+            if (!whatsappNumber || whatsappNumber === 'None' || whatsappNumber === '') {
+                alert("No WhatsApp number provided.");
+                return;
+            }
+            const url = `https://api.whatsapp.com/send?phone=${whatsappNumber}&text=${encodeURIComponent(reportText)}`;
+            window.open(url, '_blank');
+        }
+
+        function toggleMessage() {
+            const box = document.getElementById('messageBox');
+            box.style.display = box.style.display === 'block' ? 'none' : 'block';
+        }
+
+        function sendMessage() {
+            const msg = document.getElementById('customMessage').value;
+            if (!msg) {
+                alert("Please type a message first.");
+                return;
+            }
+            if (!whatsappNumber || whatsappNumber === 'None' || whatsappNumber === '') {
+                alert("No WhatsApp number provided.");
+                return;
+            }
+            const url = `https://api.whatsapp.com/send?phone=${whatsappNumber}&text=${encodeURIComponent(msg)}`;
+            window.open(url, '_blank');
+        }
+    </script>
+</body>
+
+</html>

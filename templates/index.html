@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Face Verification System</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+        }
+
+        h1 {
+            color: #1a73e8;
+            margin-bottom: 0.5rem;
+        }
+
+        p {
+            color: #5f6368;
+            margin-bottom: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #3c4043;
+        }
+
+        input[type="file"],
+        input[type="text"] {
+            display: block;
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #dadce0;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        button {
+            background-color: #1a73e8;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            width: 100%;
+            margin-top: 1rem;
+        }
+
+        button:hover {
+            background-color: #1557b0;
+        }
+
+        #webcam-container {
+            display: none;
+            margin-top: 1rem;
+        }
+
+        video {
+            width: 100%;
+            border-radius: 4px;
+        }
+
+        #capture-btn {
+            background-color: #34a853;
+            margin-top: 0.5rem;
+        }
+
+        #progress-container {
+            display: none;
+            margin-top: 2rem;
+            text-align: center;
+        }
+
+        .progress-bar-wrapper {
+            width: 100%;
+            height: 30px;
+            background-color: #e0e0e0;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 1rem 0;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #1a73e8, #34a853);
+            width: 0%;
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .progress-message {
+            color: #5f6368;
+            margin-top: 0.5rem;
+        }
+
+        .time-remaining {
+            color: #1a73e8;
+            font-weight: 600;
+            margin-top: 0.5rem;
+        }
+
+        #result {
+            margin-top: 2rem;
+            padding: 1rem;
+            border-radius: 4px;
+            display: none;
+        }
+
+        .success {
+            background-color: #e6f4ea;
+            color: #137333;
+            border: 1px solid #ceead6;
+        }
+
+        .warning {
+            background-color: #fef7e0;
+            color: #ea8600;
+            border: 1px solid #feefc3;
+        }
+
+        .error {
+            background-color: #fce8e6;
+            color: #c5221f;
+            border: 1px solid #fad2cf;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🔐 Face Verification</h1>
+        <p>Verify identity using AI & Liveness Detection</p>
+
+        <form id="verifyForm">
+            <div class="form-group">
+                <label for="name">👤 Full Name</label>
+                <input type="text" id="name" name="name" placeholder="Enter name on ID" required>
+            </div>
+            <div class="form-group">
+                <label for="whatsapp">📱 WhatsApp Number</label>
+                <input type="text" id="whatsapp" name="whatsapp" placeholder="e.g. 919876543210" required>
+            </div>
+            <div class="form-group">
+                <label for="reference">📸 Reference Photo (ID/Doc)</label>
+                <input type="file" id="reference" name="reference" accept="image/*" required>
+            </div>
+            <div class="form-group">
+                <label>🤳 Selfie (Live Capture)</label>
+                <button type="button" id="start-cam-btn">Open Webcam</button>
+                <div id="webcam-container">
+                    <video id="video" autoplay></video>
+                    <button type="button" id="capture-btn">Capture Photo</button>
+                    <canvas id="canvas" style="display:none;"></canvas>
+                </div>
+                <input type="hidden" id="selfie_base64" name="selfie_base64">
+                <p id="capture-status" style="display:none; color: green; margin-top: 0.5rem;">Photo Captured!</p>
+            </div>
+            <button type="submit" id="submit-btn">Verify Identity</button>
+        </form>
+
+        <div id="progress-container">
+            <div class="progress-bar-wrapper">
+                <div class="progress-bar" id="progress-bar">0%</div>
+            </div>
+            <div class="progress-message" id="progress-message">Starting...</div>
+            <div class="time-remaining" id="time-remaining"></div>
+        </div>
+
+        <div id="result"></div>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const startCamBtn = document.getElementById('start-cam-btn');
+        const captureBtn = document.getElementById('capture-btn');
+        const selfieInput = document.getElementById('selfie_base64');
+        const captureStatus = document.getElementById('capture-status');
+        const webcamContainer = document.getElementById('webcam-container');
+
+        startCamBtn.addEventListener('click', async () => {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+                webcamContainer.style.display = 'block';
+                startCamBtn.style.display = 'none';
+            } catch (err) {
+                alert("Error accessing webcam: " + err);
+            }
+        });
+
+        captureBtn.addEventListener('click', () => {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            const dataURL = canvas.toDataURL('image/jpeg');
+            selfieInput.value = dataURL;
+            captureStatus.style.display = 'block';
+
+            const stream = video.srcObject;
+            const tracks = stream.getTracks();
+            tracks.forEach(track => track.stop());
+            video.srcObject = null;
+            webcamContainer.style.display = 'none';
+        });
+
+        document.getElementById('verifyForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const formData = new FormData(e.target);
+            const resultDiv = document.getElementById('result');
+            const button = document.getElementById('submit-btn');
+            const progressContainer = document.getElementById('progress-container');
+            const progressBar = document.getElementById('progress-bar');
+            const progressMessage = document.getElementById('progress-message');
+            const timeRemaining = document.getElementById('time-remaining');
+
+            const sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            formData.append('session_id', sessionId);
+
+            button.disabled = true;
+            button.textContent = 'Processing...';
+            resultDiv.style.display = 'none';
+            progressContainer.style.display = 'block';
+
+            const eventSource = new EventSource(`/progress/${sessionId}`);
+
+            eventSource.onmessage = function (event) {
+                const data = JSON.parse(event.data);
+                progressBar.style.width = data.percent + '%';
+                progressBar.textContent = data.percent + '%';
+                progressMessage.textContent = data.message;
+
+                if (data.remaining > 0) {
+                    timeRemaining.textContent = `~${data.remaining} seconds remaining`;
+                } else {
+                    timeRemaining.textContent = '';
+                }
+
+                if (data.percent >= 100) {
+                    eventSource.close();
+                }
+            };
+
+            try {
+                const response = await fetch('/verify', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.wiki_url) {
+                    window.location.href = data.wiki_url;
+                } else {
+                    const params = new URLSearchParams({
+                        name: data.name,
+                        whatsapp: data.whatsapp,
+                        result: data.result,
+                        status: data.status,
+                        age: data.analysis ? data.analysis.age : '',
+                        gender: data.analysis ? data.analysis.gender : '',
+                        emotion: data.analysis ? data.analysis.emotion : '',
+                        celebrity: data.celebrity || '',
+                        ocr_match: data.ocr_match
+                    });
+                    window.location.href = `/profile/${encodeURIComponent(data.name)}?${params.toString()}`;
+                }
+
+            } catch (error) {
+                if (eventSource) eventSource.close();
+                progressContainer.style.display = 'none';
+                resultDiv.className = 'error';
+                resultDiv.textContent = 'An error occurred. Please try again.';
+                resultDiv.style.display = 'block';
+            } finally {
+                button.disabled = false;
+                button.textContent = 'Verify Identity';
+            }
+        });
+    </script>
+</body>
+
+</html>

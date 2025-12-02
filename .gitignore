@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+*.egg-info/
+dist/
+build/
+
+# Flask
+instance/
+.webassets-cache
+
+# Uploads
+uploads/
+*.jpg
+*.jpeg
+*.png
+*.gif
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Models (downloaded by DeepFace/EasyOCR)
+.deepface/
+*.h5
+*.pb
+
+# Logs
+*.log
